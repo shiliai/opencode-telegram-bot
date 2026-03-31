@@ -57,10 +57,18 @@
     "dotenv": "^17.2.3",
     "grammy": "^1.39.2",
     "https-proxy-agent": "^7.0.6",
+    "mdast-util-to-markdown": "^2.1.2",
+    "mdast-util-to-string": "^4.0.0",
+    "remark": "^15.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-remove-comments": "^1.1.1",
+    "remark-stringify": "^11.0.0",
     "socks-proxy-agent": "^8.0.5",
-    "telegram-markdown-v2": "^0.0.4"
+    "unist-util-remove": "^4.0.0",
+    "unist-util-visit": "^5.0.0"
   },
   "devDependencies": {
+    "@types/mdast": "^4.0.4",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.0.8",
     "@typescript-eslint/eslint-plugin": "^8.53.0",
