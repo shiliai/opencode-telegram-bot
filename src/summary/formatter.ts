@@ -1,6 +1,6 @@
 import { ToolInfo } from "./aggregator.js";
 import * as path from "path";
-import { convert } from "telegram-markdown-v2";
+import { convertMarkdownToTelegram } from "./telegram-markdown-converter.js";
 import { config } from "../config.js";
 import type { MessageFormatMode } from "../config.js";
 import { logger } from "../utils/logger.js";
@@ -228,7 +228,7 @@ export function escapePlainTextForTelegramMarkdownV2(text: string): string {
 function formatMarkdownForTelegram(text: string): string {
   try {
     const preprocessed = preprocessMarkdownForTelegram(text);
-    return escapeMarkdownV2PipesOutsideCode(convert(preprocessed, "keep"));
+    return escapeMarkdownV2PipesOutsideCode(convertMarkdownToTelegram(preprocessed, "keep"));
   } catch (error) {
     logger.warn("[Formatter] Failed to convert markdown summary, falling back to raw text", error);
     return text;
@@ -327,10 +327,11 @@ function getToolDetails(tool: string, input?: { [key: string]: unknown }): strin
     case "read":
     case "edit":
     case "write":
-    case "apply_patch":
+    case "apply_patch": {
       const filePath = input.path || input.filePath;
       if (typeof filePath === "string") return normalizePathForDisplay(filePath);
       break;
+    }
     case "bash":
       if (typeof input.command === "string") return input.command;
       break;
