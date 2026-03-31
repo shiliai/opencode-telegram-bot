@@ -9,6 +9,7 @@ export const es: I18nDictionary = {
   "cmd.description.task": "Crear tarea programada",
   "cmd.description.tasklist": "Ver tareas programadas",
   "cmd.description.commands": "Comandos personalizados",
+  "cmd.description.models": "Listar modelos disponibles",
   "cmd.description.opencode_start": "Iniciar servidor OpenCode",
   "cmd.description.opencode_stop": "Detener servidor OpenCode",
   "cmd.description.help": "Ayuda",
@@ -48,6 +49,7 @@ export const es: I18nDictionary = {
 
   "common.unknown": "desconocido",
   "common.unknown_error": "error desconocido",
+  "common.back": "⬅️ Atrás",
 
   "start.welcome":
     "👋 ¡Bienvenido a OpenCode Telegram Bot!\n\nUsa los comandos:\n/projects — seleccionar proyecto\n/sessions — lista de sesiones\n/new — sesión nueva\n/task — tarea programada\n/tasklist — tareas programadas\n/status — estado\n/help — ayuda\n\nUsa los botones inferiores para elegir modo, modelo y variante.",
@@ -444,6 +446,9 @@ export const es: I18nDictionary = {
   "legacy.models.header": "📋 Modelos disponibles:\n\n",
   "legacy.models.no_provider_models": "  ⚠️ No hay modelos disponibles\n",
   "legacy.models.env_hint": "💡 Para usar el modelo en .env:\n",
+  "legacy.models.provider_select": "Seleccionar proveedor:",
+  "legacy.models.model_select": "Seleccionar modelo:",
+  "legacy.models.provider_not_found": "Proveedor no encontrado",
   "legacy.models.error": "🔴 Ocurrió un error al cargar la lista de modelos.",
 
   "stt.recognizing": "🎤 Reconociendo audio...",

@@ -9,6 +9,7 @@ export const ru: I18nDictionary = {
   "cmd.description.task": "Создать задачу по расписанию",
   "cmd.description.tasklist": "Список задач по расписанию",
   "cmd.description.commands": "Пользовательские команды",
+  "cmd.description.models": "Список доступных моделей",
   "cmd.description.opencode_start": "Запустить OpenCode сервер",
   "cmd.description.opencode_stop": "Остановить OpenCode сервер",
   "cmd.description.help": "Справка",
@@ -45,6 +46,7 @@ export const ru: I18nDictionary = {
 
   "common.unknown": "неизвестна",
   "common.unknown_error": "неизвестная ошибка",
+  "common.back": "⬅️ Назад",
 
   "start.welcome":
     "👋 Добро пожаловать в OpenCode Telegram Bot!\n\nИспользуйте команды:\n/projects — выбрать проект\n/sessions — список сессий\n/new — новая сессия\n/task — задача по расписанию\n/tasklist — список задач по расписанию\n/status — статус\n/help — справка\n\nРежим, модель и вариант выбираются кнопками внизу.",
@@ -433,6 +435,9 @@ export const ru: I18nDictionary = {
   "legacy.models.header": "📋 Доступные модели:\n\n",
   "legacy.models.no_provider_models": "  ⚠️ Нет доступных моделей\n",
   "legacy.models.env_hint": "💡 Для использования модели в .env:\n",
+  "legacy.models.provider_select": "Выберите провайдера:",
+  "legacy.models.model_select": "Выберите модель:",
+  "legacy.models.provider_not_found": "Провайдер не найден",
   "legacy.models.error": "🔴 Произошла ошибка при получении списка моделей.",
 
   "stt.recognizing": "🎤 Распознаю аудио...",

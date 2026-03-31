@@ -7,6 +7,7 @@ export const en = {
   "cmd.description.task": "Create a scheduled task",
   "cmd.description.tasklist": "List scheduled tasks",
   "cmd.description.commands": "Custom commands",
+  "cmd.description.models": "List available models",
   "cmd.description.opencode_start": "Start OpenCode server",
   "cmd.description.opencode_stop": "Stop OpenCode server",
   "cmd.description.help": "Help",
@@ -45,6 +46,7 @@ export const en = {
 
   "common.unknown": "unknown",
   "common.unknown_error": "unknown error",
+  "common.back": "⬅️ Back",
 
   "start.welcome":
     "👋 Welcome to OpenCode Telegram Bot!\n\nUse commands:\n/projects — select project\n/sessions — session list\n/new — new session\n/task — scheduled task\n/tasklist — scheduled tasks\n/status — status\n/help — help\n\nUse the bottom buttons to select agent mode, model, and variant.",
@@ -428,6 +430,9 @@ export const en = {
   "legacy.models.header": "📋 Available models:\n\n",
   "legacy.models.no_provider_models": "  ⚠️ No available models\n",
   "legacy.models.env_hint": "💡 To use model in .env:\n",
+  "legacy.models.provider_select": "Select a provider:",
+  "legacy.models.model_select": "Select a model:",
+  "legacy.models.provider_not_found": "Provider not found",
   "legacy.models.error": "🔴 An error occurred while loading models list.",
 
   "stt.recognizing": "🎤 Recognizing audio...",
