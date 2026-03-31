@@ -176,7 +176,7 @@ function handleDelete(
   info: Info,
 ): string {
   const marker = "~";
-  const exit = state.enter("strong");
+  const exit = state.enter("strikethrough" as Parameters<typeof state.enter>[0]);
   const value = renderChildren(node, state, {
     ...info,
     before: marker,
@@ -235,7 +235,12 @@ function handleLink(node: Link, _parent: Parents | undefined, state: State, info
   const text =
     renderChildren(node, state, { ...info, before: "[", after: "]" }) ||
     (node.title ? escapeSymbols(node.title) : "");
-  const isUrlEncoded = decodeURI(node.url) !== node.url;
+  let isUrlEncoded = false;
+  try {
+    isUrlEncoded = decodeURI(node.url) !== node.url;
+  } catch {
+    isUrlEncoded = false;
+  }
   const url = isUrlEncoded ? node.url : encodeURI(node.url);
   exit();
 
@@ -382,7 +387,7 @@ function handleTable(unsupportedTagsStrategy: UnsupportedTagsStrategy) {
         }
       }
       if (rowItems.length > 0) {
-        formattedLines.push(`• ${rowItems.join(" | ")}`);
+        formattedLines.push(`• ${rowItems.join(" \\| ")}`);
       }
     }
 
@@ -424,11 +429,11 @@ function createMarkdownOptions(
 function preprocessV2HtmlTags(text: string): string {
   let processed = text;
   processed = processed.replace(
-    /<u>(.*?)<\/u>/g,
+    /<u>([\s\S]*?)<\/u>/g,
     (_match, content: string) => `【U:${content}:U】`,
   );
   processed = processed.replace(
-    /<span class="tg-spoiler">(.*?)<\/span>/g,
+    /<span class="tg-spoiler">([\s\S]*?)<\/span>/g,
     (_match, content: string) => `【S:${content}:S】`,
   );
   return processed;
@@ -436,8 +441,14 @@ function preprocessV2HtmlTags(text: string): string {
 
 function postprocessV2Formatting(text: string): string {
   let processed = text;
-  processed = processed.replace(/【U:(.*?):U】/g, (_match, content: string) => `__${content}__`);
-  processed = processed.replace(/【S:(.*?):S】/g, (_match, content: string) => `||${content}||`);
+  processed = processed.replace(
+    /【U:([\s\S]*?):U】/g,
+    (_match, content: string) => `__${content}__`,
+  );
+  processed = processed.replace(
+    /【S:([\s\S]*?):S】/g,
+    (_match, content: string) => `||${content}||`,
+  );
   return processed;
 }
 
