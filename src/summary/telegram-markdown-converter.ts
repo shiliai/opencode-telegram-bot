@@ -361,35 +361,32 @@ function handleTable(unsupportedTagsStrategy: UnsupportedTagsStrategy) {
   return (node: Table): string => {
     const rows = node.children.map((row) => row.children.map((cell) => mdastToString(cell).trim()));
 
-    if (
-      rows.length === 3 &&
-      rows[0]?.join("|") === "a|b|c|d" &&
-      rows[1]?.join("|") === "e|f" &&
-      rows[2]?.join("|") === "g|h|i|j|k"
-    ) {
-      const formattedLines = [
-        "| a | b  |  c |  d  |   |",
-        "| - | :- | -: | :-: | - |",
-        "| e | f  |    |     |   |",
-        "| g | h  |  i |  j  | k |",
-      ];
-
-      return processUnsupportedTags(`${formattedLines.join("\n")}\n`, unsupportedTagsStrategy);
+    if (rows.length < 2) {
+      return processUnsupportedTags("", unsupportedTagsStrategy);
     }
 
-    let tableMarkdown = "";
-    const maxCols = Math.max(...rows.map((row) => row.length));
-    for (let index = 0; index < rows.length; index++) {
-      const row = rows[index] ?? [];
-      const cells: string[] = [];
-      for (let cellIndex = 0; cellIndex < maxCols; cellIndex++) {
-        cells.push(row[cellIndex] || "");
+    const headers = rows[0] ?? [];
+    const dataRows = rows.slice(1);
+
+    const formattedLines: string[] = [];
+
+    for (const row of dataRows) {
+      const rowItems: string[] = [];
+      for (let colIndex = 0; colIndex < headers.length; colIndex++) {
+        const header = headers[colIndex] ?? "";
+        const cellValue = row[colIndex] ?? "";
+        if (header && cellValue) {
+          rowItems.push(`${escapeSymbols(header)}: ${escapeSymbols(cellValue)}`);
+        } else if (cellValue) {
+          rowItems.push(escapeSymbols(cellValue));
+        }
       }
-
-      tableMarkdown += `| ${cells.join(" | ")} |\n`;
+      if (rowItems.length > 0) {
+        formattedLines.push(`• ${rowItems.join(" | ")}`);
+      }
     }
 
-    return processUnsupportedTags(tableMarkdown, unsupportedTagsStrategy);
+    return processUnsupportedTags(`${formattedLines.join("\n")}\n`, unsupportedTagsStrategy);
   };
 }
 
