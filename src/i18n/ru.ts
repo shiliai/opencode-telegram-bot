@@ -81,6 +81,8 @@ export const ru: I18nDictionary = {
   "bot.file_download_error": "🔴 Не удалось скачать файл",
   "bot.model_no_pdf": "⚠️ Текущая модель не поддерживает PDF. Отправляю только текст.",
   "bot.text_file_too_large": "⚠️ Текстовый файл слишком большой (макс. {maxSizeKb}КБ)",
+  "bot.file_upload_too_large": "⚠️ Файл слишком большой (макс. {maxSizeMb}МБ)",
+  "bot.sticker_not_supported": "⚠️ Анимированные и видеостикеры не поддерживаются.",
 
   "status.header_running": "🟢 OpenCode Server запущен",
   "status.health.healthy": "Healthy",

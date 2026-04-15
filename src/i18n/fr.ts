@@ -88,6 +88,8 @@ export const fr: I18nDictionary = {
   "bot.model_no_pdf":
     "⚠️ Le modèle actuel ne prend pas en charge les PDF. Envoi du texte uniquement.",
   "bot.text_file_too_large": "⚠️ Le fichier texte est trop volumineux (max {maxSizeKb}KB)",
+  "bot.file_upload_too_large": "⚠️ Le fichier est trop volumineux (max {maxSizeMb}Mo)",
+  "bot.sticker_not_supported": "⚠️ Les autocollants animés et vidéo ne sont pas pris en charge.",
 
   "status.header_running": "🟢 Le serveur OpenCode est en cours d'exécution",
   "status.health.healthy": "Sain",

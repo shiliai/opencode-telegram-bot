@@ -81,6 +81,8 @@ export const en = {
   "bot.file_download_error": "🔴 Failed to download file",
   "bot.model_no_pdf": "⚠️ Current model doesn't support PDF input. Sending text only.",
   "bot.text_file_too_large": "⚠️ Text file is too large (max {maxSizeKb}KB)",
+  "bot.file_upload_too_large": "⚠️ File is too large (max {maxSizeMb}MB)",
+  "bot.sticker_not_supported": "⚠️ Animated and video stickers are not supported.",
 
   "status.header_running": "🟢 OpenCode Server is running",
   "status.health.healthy": "Healthy",

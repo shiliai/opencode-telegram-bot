@@ -72,6 +72,8 @@ export const zh: I18nDictionary = {
   "bot.file_download_error": "🔴 下载文件失败",
   "bot.model_no_pdf": "⚠️ 当前模型不支持PDF输入。将仅发送文本。",
   "bot.text_file_too_large": "⚠️ 文本文件过大（最大 {maxSizeKb}KB）",
+  "bot.file_upload_too_large": "⚠️ 文件过大（最大 {maxSizeMb}MB）",
+  "bot.sticker_not_supported": "⚠️ 不支持动画和视频贴纸。",
 
   "status.header_running": "🟢 OpenCode 服务器正在运行",
   "status.health.healthy": "健康",

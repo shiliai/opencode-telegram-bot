@@ -87,6 +87,8 @@ export const es: I18nDictionary = {
   "bot.file_download_error": "🔴 No se pudo descargar el archivo",
   "bot.model_no_pdf": "⚠️ El modelo actual no admite entrada PDF. Enviaré solo texto.",
   "bot.text_file_too_large": "⚠️ El archivo de texto es demasiado grande (max {maxSizeKb}KB)",
+  "bot.file_upload_too_large": "⚠️ El archivo es demasiado grande (max {maxSizeMb}MB)",
+  "bot.sticker_not_supported": "⚠️ Los stickers animados y de video no son compatibles.",
 
   "status.header_running": "🟢 OpenCode Server está en ejecución",
   "status.health.healthy": "Saludable",

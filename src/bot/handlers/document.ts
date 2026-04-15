@@ -7,6 +7,7 @@ import {
   isTextMimeType,
   isFileSizeAllowed,
 } from "../utils/file-download.js";
+import { saveFileLocally, isUploadSizeAllowed } from "../utils/file-save.js";
 import { getModelCapabilities, supportsInput } from "../../model/capabilities.js";
 import { getStoredModel } from "../../model/manager.js";
 import { logger } from "../../utils/logger.js";
@@ -29,6 +30,7 @@ export interface DocumentHandlerDeps extends ProcessPromptDeps {
     deps: ProcessPromptDeps,
     fileParts?: FilePartInput[],
   ) => Promise<boolean>;
+  saveFile?: (buffer: Buffer, filename: string) => Promise<string>;
 }
 
 export async function handleDocumentMessage(
@@ -39,6 +41,7 @@ export async function handleDocumentMessage(
   const getCapabilities = deps.getModelCapabilities ?? getModelCapabilities;
   const getStored = deps.getStoredModel ?? getStoredModel;
   const processPrompt = deps.processPrompt ?? processUserPrompt;
+  const saveFile = deps.saveFile ?? saveFileLocally;
 
   const doc = ctx.message?.document;
   if (!doc) {
@@ -76,43 +79,48 @@ export async function handleDocumentMessage(
       return;
     }
 
+    if (!isUploadSizeAllowed(doc.file_size)) {
+      logger.warn(
+        `[Document] File too large: ${filename} (${doc.file_size} bytes > ${config.files.uploadMaxSizeMb}MB)`,
+      );
+      await ctx.reply(
+        t("bot.file_upload_too_large", {
+          maxSizeMb: String(config.files.uploadMaxSizeMb),
+        }),
+      );
+      return;
+    }
+
+    await ctx.reply(t("bot.file_downloading"));
+    const downloadedFile = await downloadFile(ctx.api, doc.file_id);
+    const localPath = await saveFile(downloadedFile.buffer, filename);
+
+    const fileParts: FilePartInput[] = [];
+
     if (mimeType === "application/pdf") {
       const storedModel = getStored();
       const capabilities = await getCapabilities(storedModel.providerID, storedModel.modelID);
 
-      if (!supportsInput(capabilities, "pdf")) {
-        logger.warn(
-          `[Document] Model ${storedModel.providerID}/${storedModel.modelID} doesn't support PDF input`,
-        );
-        await ctx.reply(t("bot.model_no_pdf"));
-
-        if (caption.trim().length > 0) {
-          await processPrompt(ctx, caption, deps);
-        }
-        return;
+      if (supportsInput(capabilities, "pdf")) {
+        const dataUri = toDataUri(downloadedFile.buffer, mimeType);
+        fileParts.push({
+          type: "file",
+          mime: mimeType,
+          filename,
+          url: dataUri,
+        });
       }
-
-      await ctx.reply(t("bot.file_downloading"));
-      const downloadedFile = await downloadFile(ctx.api, doc.file_id);
-
-      const dataUri = toDataUri(downloadedFile.buffer, mimeType);
-
-      const filePart: FilePartInput = {
-        type: "file",
-        mime: mimeType,
-        filename: filename,
-        url: dataUri,
-      };
-
-      logger.info(
-        `[Document] Sending PDF (${downloadedFile.buffer.length} bytes, ${filename}) with prompt`,
-      );
-
-      await processPrompt(ctx, caption, deps, [filePart]);
-      return;
     }
 
-    logger.debug(`[Document] Unsupported document MIME type: ${mimeType}, ignoring`);
+    const promptText = caption
+      ? `User uploaded file: ${localPath}\n${caption}`
+      : `User uploaded file: ${localPath}`;
+
+    logger.info(
+      `[Document] Saved ${filename} (${downloadedFile.buffer.length} bytes) to ${localPath}`,
+    );
+
+    await processPrompt(ctx, promptText, deps, fileParts);
   } catch (err) {
     logger.error("[Document] Error handling document message:", err);
     await ctx.reply(t("bot.file_download_error"));
