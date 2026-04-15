@@ -59,6 +59,8 @@ function createDocumentDeps(overrides: Partial<DocumentHandlerDeps> = {}): {
   });
   const saveFileMock = vi.fn().mockResolvedValue("/tmp/opencode-telegram-bot/123_document.pdf");
 
+  const getCurrentProjectMock = vi.fn().mockReturnValue({ worktree: "/test/project" });
+
   const deps: DocumentHandlerDeps = {
     bot: {} as DocumentHandlerDeps["bot"],
     ensureEventSubscription: vi.fn().mockResolvedValue(undefined),
@@ -67,6 +69,7 @@ function createDocumentDeps(overrides: Partial<DocumentHandlerDeps> = {}): {
     getStoredModel: getStoredModelMock,
     processPrompt: processPromptMock,
     saveFile: saveFileMock,
+    getCurrentProject: getCurrentProjectMock,
     ...overrides,
   };
 
@@ -375,6 +378,21 @@ describe("bot/handlers/document", () => {
       await handleDocumentMessage(ctx, deps);
 
       expect(replyMock).toHaveBeenCalledWith(t("bot.file_download_error"));
+    });
+  });
+
+  describe("project not selected", () => {
+    it("replies with project_not_selected and skips download when no project", async () => {
+      const { ctx, replyMock } = createDocumentContext();
+      const { deps, processPromptMock, downloadMock } = createDocumentDeps({
+        getCurrentProject: vi.fn().mockReturnValue(undefined),
+      });
+
+      await handleDocumentMessage(ctx, deps);
+
+      expect(replyMock).toHaveBeenCalledWith(t("bot.project_not_selected"));
+      expect(downloadMock).not.toHaveBeenCalled();
+      expect(processPromptMock).not.toHaveBeenCalled();
     });
   });
 

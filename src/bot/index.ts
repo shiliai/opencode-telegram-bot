@@ -73,6 +73,7 @@ import { deliverThinkingMessage } from "./utils/thinking-message.js";
 import { sendBotText } from "./utils/telegram-text.js";
 import { getModelCapabilities, supportsInput } from "../model/capabilities.js";
 import { getStoredModel } from "../model/manager.js";
+import { getCurrentProject } from "../settings/manager.js";
 import type { FilePartInput } from "@opencode-ai/sdk/v2";
 import { foregroundSessionState } from "../scheduled-task/foreground-state.js";
 import { scheduledTaskRuntime } from "../scheduled-task/runtime.js";
@@ -1062,6 +1063,11 @@ export function createBot(): Bot<Context> {
       return;
     }
 
+    if (!getCurrentProject()) {
+      await ctx.reply(t("bot.project_not_selected"));
+      return;
+    }
+
     const caption = ctx.message.caption || "";
 
     try {
@@ -1129,6 +1135,11 @@ export function createBot(): Bot<Context> {
       return;
     }
 
+    if (!getCurrentProject()) {
+      await ctx.reply(t("bot.project_not_selected"));
+      return;
+    }
+
     try {
       if (!isUploadSizeAllowed(video.file_size)) {
         await ctx.reply(
@@ -1168,6 +1179,11 @@ export function createBot(): Bot<Context> {
 
     const animation = ctx.message?.animation;
     if (!animation) {
+      return;
+    }
+
+    if (!getCurrentProject()) {
+      await ctx.reply(t("bot.project_not_selected"));
       return;
     }
 
@@ -1213,6 +1229,11 @@ export function createBot(): Bot<Context> {
       return;
     }
 
+    if (!getCurrentProject()) {
+      await ctx.reply(t("bot.project_not_selected"));
+      return;
+    }
+
     try {
       if (!isUploadSizeAllowed(videoNote.file_size)) {
         await ctx.reply(
@@ -1247,6 +1268,11 @@ export function createBot(): Bot<Context> {
 
     const sticker = ctx.message?.sticker;
     if (!sticker) {
+      return;
+    }
+
+    if (!getCurrentProject()) {
+      await ctx.reply(t("bot.project_not_selected"));
       return;
     }
 

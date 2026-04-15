@@ -10,6 +10,7 @@ import {
 import { saveFileLocally, isUploadSizeAllowed } from "../utils/file-save.js";
 import { getModelCapabilities, supportsInput } from "../../model/capabilities.js";
 import { getStoredModel } from "../../model/manager.js";
+import { getCurrentProject } from "../../settings/manager.js";
 import { logger } from "../../utils/logger.js";
 import { t } from "../../i18n/index.js";
 import type { FilePartInput, Model } from "@opencode-ai/sdk/v2";
@@ -31,6 +32,7 @@ export interface DocumentHandlerDeps extends ProcessPromptDeps {
     fileParts?: FilePartInput[],
   ) => Promise<boolean>;
   saveFile?: (buffer: Buffer, filename: string) => Promise<string>;
+  getCurrentProject?: () => { worktree: string } | undefined;
 }
 
 export async function handleDocumentMessage(
@@ -42,9 +44,15 @@ export async function handleDocumentMessage(
   const getStored = deps.getStoredModel ?? getStoredModel;
   const processPrompt = deps.processPrompt ?? processUserPrompt;
   const saveFile = deps.saveFile ?? saveFileLocally;
+  const getProject = deps.getCurrentProject ?? getCurrentProject;
 
   const doc = ctx.message?.document;
   if (!doc) {
+    return;
+  }
+
+  if (!getProject()) {
+    await ctx.reply(t("bot.project_not_selected"));
     return;
   }
 
