@@ -9,6 +9,7 @@ export const zh: I18nDictionary = {
   "cmd.description.task": "创建定时任务",
   "cmd.description.tasklist": "查看定时任务",
   "cmd.description.commands": "自定义命令",
+  "cmd.description.models": "列出可用模型",
   "cmd.description.opencode_start": "启动 OpenCode 服务器",
   "cmd.description.opencode_stop": "停止 OpenCode 服务器",
   "cmd.description.help": "帮助",
@@ -41,6 +42,7 @@ export const zh: I18nDictionary = {
 
   "common.unknown": "未知",
   "common.unknown_error": "未知错误",
+  "common.back": "⬅️ 返回",
 
   "start.welcome":
     "👋 欢迎使用 OpenCode Telegram Bot！\n\n可用命令：\n/projects — 选择项目\n/sessions — 会话列表\n/new — 新建会话\n/task — 定时任务\n/tasklist — 定时任务列表\n/status — 状态\n/help — 帮助\n\n请使用底部按钮选择模式、模型和变体。",
@@ -70,6 +72,8 @@ export const zh: I18nDictionary = {
   "bot.file_download_error": "🔴 下载文件失败",
   "bot.model_no_pdf": "⚠️ 当前模型不支持PDF输入。将仅发送文本。",
   "bot.text_file_too_large": "⚠️ 文本文件过大（最大 {maxSizeKb}KB）",
+  "bot.file_upload_too_large": "⚠️ 文件过大（最大 {maxSizeMb}MB）",
+  "bot.sticker_not_supported": "⚠️ 不支持动画和视频贴纸。",
 
   "status.header_running": "🟢 OpenCode 服务器正在运行",
   "status.health.healthy": "健康",
@@ -391,6 +395,9 @@ export const zh: I18nDictionary = {
   "legacy.models.header": "📋 可用模型：\n\n",
   "legacy.models.no_provider_models": "  ⚠️ 没有可用模型\n",
   "legacy.models.env_hint": "💡 在 .env 中使用该模型：\n",
+  "legacy.models.provider_select": "选择提供商：",
+  "legacy.models.model_select": "选择模型：",
+  "legacy.models.provider_not_found": "未找到提供商",
   "legacy.models.error": "🔴 加载模型列表时发生错误。",
 
   "stt.recognizing": "🎤 正在识别音频...",

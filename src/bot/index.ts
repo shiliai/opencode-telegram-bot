@@ -31,6 +31,7 @@ import {
   handleCommandsCallback,
   handleCommandTextArguments,
 } from "./commands/commands.js";
+import { modelsCommand, handleModelsCallback } from "./commands/models.js";
 import {
   handleQuestionCallback,
   showCurrentQuestion,
@@ -67,11 +68,13 @@ import { processUserPrompt } from "./handlers/prompt.js";
 import { handleVoiceMessage } from "./handlers/voice.js";
 import { handleDocumentMessage } from "./handlers/document.js";
 import { downloadTelegramFile, toDataUri } from "./utils/file-download.js";
+import { saveFileLocally, isUploadSizeAllowed } from "./utils/file-save.js";
 import { finalizeAssistantResponse } from "./utils/finalize-assistant-response.js";
 import { deliverThinkingMessage } from "./utils/thinking-message.js";
 import { sendBotText } from "./utils/telegram-text.js";
 import { getModelCapabilities, supportsInput } from "../model/capabilities.js";
 import { getStoredModel } from "../model/manager.js";
+import { getCurrentProject } from "../settings/manager.js";
 import type { FilePartInput } from "@opencode-ai/sdk/v2";
 import { foregroundSessionState } from "../scheduled-task/foreground-state.js";
 import { scheduledTaskRuntime } from "../scheduled-task/runtime.js";
@@ -889,6 +892,7 @@ export function createBot(): Bot<Context> {
   bot.command("tasklist", taskListCommand);
   bot.command("rename", renameCommand);
   bot.command("commands", commandsCommand);
+  bot.command("models", modelsCommand);
 
   bot.on("message:text", unknownCommandMiddleware);
 
@@ -915,9 +919,10 @@ export function createBot(): Bot<Context> {
       const handledTaskList = await handleTaskListCallback(ctx);
       const handledRenameCancel = await handleRenameCancel(ctx);
       const handledCommands = await handleCommandsCallback(ctx, { bot, ensureEventSubscription });
+      const handledModels = await handleModelsCallback(ctx);
 
       logger.debug(
-        `[Bot] Callback handled: inlineCancel=${handledInlineCancel}, session=${handledSession}, project=${handledProject}, question=${handledQuestion}, permission=${handledPermission}, agent=${handledAgent}, model=${handledModel}, variant=${handledVariant}, compactConfirm=${handledCompactConfirm}, task=${handledTask}, taskList=${handledTaskList}, rename=${handledRenameCancel}, commands=${handledCommands}`,
+        `[Bot] Callback handled: inlineCancel=${handledInlineCancel}, session=${handledSession}, project=${handledProject}, question=${handledQuestion}, permission=${handledPermission}, agent=${handledAgent}, model=${handledModel}, variant=${handledVariant}, compactConfirm=${handledCompactConfirm}, task=${handledTask}, taskList=${handledTaskList}, rename=${handledRenameCancel}, commands=${handledCommands}, models=${handledModels}`,
       );
 
       if (
@@ -933,7 +938,8 @@ export function createBot(): Bot<Context> {
         !handledTask &&
         !handledTaskList &&
         !handledRenameCancel &&
-        !handledCommands
+        !handledCommands &&
+        !handledModels
       ) {
         logger.debug("Unknown callback query:", ctx.callbackQuery?.data);
         await ctx.answerCallbackQuery({ text: t("callback.unknown_command") });
@@ -1072,68 +1078,251 @@ export function createBot(): Bot<Context> {
       return;
     }
 
+    if (!getCurrentProject()) {
+      await ctx.reply(t("bot.project_not_selected"));
+      return;
+    }
+
     const caption = ctx.message.caption || "";
 
     try {
-      // Get the largest photo (last element in array)
       const largestPhoto = photos[photos.length - 1];
 
-      // Check model capabilities
-      const storedModel = getStoredModel();
-      const capabilities = await getModelCapabilities(storedModel.providerID, storedModel.modelID);
-
-      if (!supportsInput(capabilities, "image")) {
-        logger.warn(
-          `[Bot] Model ${storedModel.providerID}/${storedModel.modelID} doesn't support image input`,
+      if (!isUploadSizeAllowed(largestPhoto.file_size)) {
+        await ctx.reply(
+          t("bot.file_upload_too_large", {
+            maxSizeMb: String(config.files.uploadMaxSizeMb),
+          }),
         );
-        await ctx.reply(t("bot.photo_model_no_image"));
-
-        // Fall back to caption-only if present
-        if (caption.trim().length > 0) {
-          botInstance = bot;
-          chatIdInstance = ctx.chat.id;
-          const promptDeps = { bot, ensureEventSubscription };
-          await processUserPrompt(ctx, caption, promptDeps);
-        }
         return;
       }
 
-      // Download photo
       await ctx.reply(t("bot.photo_downloading"));
       const downloadedFile = await downloadTelegramFile(ctx.api, largestPhoto.file_id);
+      const localPath = await saveFileLocally(downloadedFile.buffer, "photo.jpg");
 
-      // Convert to data URI (Telegram always converts photos to JPEG)
-      const dataUri = toDataUri(downloadedFile.buffer, "image/jpeg");
+      const fileParts: FilePartInput[] = [];
+      const storedModel = getStoredModel();
+      const capabilities = await getModelCapabilities(storedModel.providerID, storedModel.modelID);
 
-      // Create file part
-      const filePart: FilePartInput = {
-        type: "file",
-        mime: "image/jpeg",
-        filename: "photo.jpg",
-        url: dataUri,
-      };
+      if (supportsInput(capabilities, "image")) {
+        const dataUri = toDataUri(downloadedFile.buffer, "image/jpeg");
+        fileParts.push({
+          type: "file",
+          mime: "image/jpeg",
+          filename: "photo.jpg",
+          url: dataUri,
+        });
+      }
 
-      logger.info(`[Bot] Sending photo (${downloadedFile.buffer.length} bytes) with prompt`);
+      const promptText = caption
+        ? `User uploaded file: ${localPath}\n${caption}`
+        : `User uploaded file: ${localPath}`;
+
+      logger.info(`[Bot] Saved photo (${downloadedFile.buffer.length} bytes) to ${localPath}`);
 
       botInstance = bot;
       chatIdInstance = ctx.chat.id;
 
-      // Send via processUserPrompt with file part
       const promptDeps = { bot, ensureEventSubscription };
-      await processUserPrompt(ctx, caption, promptDeps, [filePart]);
+      await processUserPrompt(ctx, promptText, promptDeps, fileParts);
     } catch (err) {
       logger.error("[Bot] Error handling photo message:", err);
       await ctx.reply(t("bot.photo_download_error"));
     }
   });
 
-  // Document message handler (PDF and text files)
+  // Document message handler
   bot.on("message:document", async (ctx) => {
     logger.debug(`[Bot] Received document message, chatId=${ctx.chat.id}`);
     botInstance = bot;
     chatIdInstance = ctx.chat.id;
     const deps = { bot, ensureEventSubscription };
     await handleDocumentMessage(ctx, deps);
+  });
+
+  // Video message handler
+  bot.on("message:video", async (ctx) => {
+    logger.debug(`[Bot] Received video message, chatId=${ctx.chat.id}`);
+
+    const video = ctx.message?.video;
+    if (!video) {
+      return;
+    }
+
+    if (!getCurrentProject()) {
+      await ctx.reply(t("bot.project_not_selected"));
+      return;
+    }
+
+    try {
+      if (!isUploadSizeAllowed(video.file_size)) {
+        await ctx.reply(
+          t("bot.file_upload_too_large", {
+            maxSizeMb: String(config.files.uploadMaxSizeMb),
+          }),
+        );
+        return;
+      }
+
+      const caption = ctx.message.caption || "";
+      const filename = (video as { file_name?: string }).file_name || "video.mp4";
+
+      await ctx.reply(t("bot.file_downloading"));
+      const downloadedFile = await downloadTelegramFile(ctx.api, video.file_id);
+      const localPath = await saveFileLocally(downloadedFile.buffer, filename);
+
+      const promptText = caption
+        ? `User uploaded file: ${localPath}\n${caption}`
+        : `User uploaded file: ${localPath}`;
+
+      logger.info(`[Bot] Saved video (${downloadedFile.buffer.length} bytes) to ${localPath}`);
+
+      botInstance = bot;
+      chatIdInstance = ctx.chat.id;
+      const promptDeps = { bot, ensureEventSubscription };
+      await processUserPrompt(ctx, promptText, promptDeps);
+    } catch (err) {
+      logger.error("[Bot] Error handling video message:", err);
+      await ctx.reply(t("bot.file_download_error"));
+    }
+  });
+
+  // Animation (GIF) message handler
+  bot.on("message:animation", async (ctx) => {
+    logger.debug(`[Bot] Received animation message, chatId=${ctx.chat.id}`);
+
+    const animation = ctx.message?.animation;
+    if (!animation) {
+      return;
+    }
+
+    if (!getCurrentProject()) {
+      await ctx.reply(t("bot.project_not_selected"));
+      return;
+    }
+
+    try {
+      if (!isUploadSizeAllowed(animation.file_size)) {
+        await ctx.reply(
+          t("bot.file_upload_too_large", {
+            maxSizeMb: String(config.files.uploadMaxSizeMb),
+          }),
+        );
+        return;
+      }
+
+      const caption = ctx.message.caption || "";
+      const filename = animation.file_name || "animation.gif";
+
+      await ctx.reply(t("bot.file_downloading"));
+      const downloadedFile = await downloadTelegramFile(ctx.api, animation.file_id);
+      const localPath = await saveFileLocally(downloadedFile.buffer, filename);
+
+      const promptText = caption
+        ? `User uploaded file: ${localPath}\n${caption}`
+        : `User uploaded file: ${localPath}`;
+
+      logger.info(`[Bot] Saved animation (${downloadedFile.buffer.length} bytes) to ${localPath}`);
+
+      botInstance = bot;
+      chatIdInstance = ctx.chat.id;
+      const promptDeps = { bot, ensureEventSubscription };
+      await processUserPrompt(ctx, promptText, promptDeps);
+    } catch (err) {
+      logger.error("[Bot] Error handling animation message:", err);
+      await ctx.reply(t("bot.file_download_error"));
+    }
+  });
+
+  // Video note (round video) message handler
+  bot.on("message:video_note", async (ctx) => {
+    logger.debug(`[Bot] Received video_note message, chatId=${ctx.chat.id}`);
+
+    const videoNote = ctx.message?.video_note;
+    if (!videoNote) {
+      return;
+    }
+
+    if (!getCurrentProject()) {
+      await ctx.reply(t("bot.project_not_selected"));
+      return;
+    }
+
+    try {
+      if (!isUploadSizeAllowed(videoNote.file_size)) {
+        await ctx.reply(
+          t("bot.file_upload_too_large", {
+            maxSizeMb: String(config.files.uploadMaxSizeMb),
+          }),
+        );
+        return;
+      }
+
+      await ctx.reply(t("bot.file_downloading"));
+      const downloadedFile = await downloadTelegramFile(ctx.api, videoNote.file_id);
+      const localPath = await saveFileLocally(downloadedFile.buffer, "video_note.mp4");
+
+      const promptText = `User uploaded file: ${localPath}`;
+
+      logger.info(`[Bot] Saved video_note (${downloadedFile.buffer.length} bytes) to ${localPath}`);
+
+      botInstance = bot;
+      chatIdInstance = ctx.chat.id;
+      const promptDeps = { bot, ensureEventSubscription };
+      await processUserPrompt(ctx, promptText, promptDeps);
+    } catch (err) {
+      logger.error("[Bot] Error handling video_note message:", err);
+      await ctx.reply(t("bot.file_download_error"));
+    }
+  });
+
+  // Sticker message handler
+  bot.on("message:sticker", async (ctx) => {
+    logger.debug(`[Bot] Received sticker message, chatId=${ctx.chat.id}`);
+
+    const sticker = ctx.message?.sticker;
+    if (!sticker) {
+      return;
+    }
+
+    if (!getCurrentProject()) {
+      await ctx.reply(t("bot.project_not_selected"));
+      return;
+    }
+
+    if (sticker.is_animated || sticker.is_video) {
+      logger.debug("[Bot] Animated/video sticker, skipping download");
+      await ctx.reply(t("bot.sticker_not_supported"));
+      return;
+    }
+
+    try {
+      if (!isUploadSizeAllowed(sticker.file_size)) {
+        await ctx.reply(
+          t("bot.file_upload_too_large", {
+            maxSizeMb: String(config.files.uploadMaxSizeMb),
+          }),
+        );
+        return;
+      }
+
+      await ctx.reply(t("bot.file_downloading"));
+      const downloadedFile = await downloadTelegramFile(ctx.api, sticker.file_id);
+      const localPath = await saveFileLocally(downloadedFile.buffer, "sticker.webp");
+
+      const promptText = `User uploaded file: ${localPath}`;
+
+      logger.info(`[Bot] Saved sticker (${downloadedFile.buffer.length} bytes) to ${localPath}`);
+
+      botInstance = bot;
+      chatIdInstance = ctx.chat.id;
+      const promptDeps = { bot, ensureEventSubscription };
+      await processUserPrompt(ctx, promptText, promptDeps);
+    } catch (err) {
+      logger.error("[Bot] Error handling sticker message:", err);
+      await ctx.reply(t("bot.file_download_error"));
+    }
   });
 
   bot.on("message:text", async (ctx) => {

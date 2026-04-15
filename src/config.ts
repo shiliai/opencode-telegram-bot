@@ -106,6 +106,8 @@ export const config = {
   },
   files: {
     maxFileSizeKb: parseInt(getEnvVar("CODE_FILE_MAX_SIZE_KB", false) || "100", 10),
+    uploadDir: getEnvVar("FILE_UPLOAD_DIR", false) || "/tmp/opencode-telegram-bot",
+    uploadMaxSizeMb: getOptionalPositiveIntEnvVar("FILE_UPLOAD_MAX_SIZE_MB", 20),
   },
   stt: {
     apiUrl: getEnvVar("STT_API_URL", false),

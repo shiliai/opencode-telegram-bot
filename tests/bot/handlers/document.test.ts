@@ -43,6 +43,7 @@ function createDocumentDeps(overrides: Partial<DocumentHandlerDeps> = {}): {
   downloadMock: ReturnType<typeof vi.fn>;
   getCapabilitiesMock: ReturnType<typeof vi.fn>;
   getStoredModelMock: ReturnType<typeof vi.fn>;
+  saveFileMock: ReturnType<typeof vi.fn>;
 } {
   const processPromptMock = vi.fn().mockResolvedValue(true);
   const downloadMock = vi.fn().mockResolvedValue({
@@ -56,6 +57,9 @@ function createDocumentDeps(overrides: Partial<DocumentHandlerDeps> = {}): {
     providerID: "test-provider",
     modelID: "test-model",
   });
+  const saveFileMock = vi.fn().mockResolvedValue("/tmp/opencode-telegram-bot/123_document.pdf");
+
+  const getCurrentProjectMock = vi.fn().mockReturnValue({ worktree: "/test/project" });
 
   const deps: DocumentHandlerDeps = {
     bot: {} as DocumentHandlerDeps["bot"],
@@ -64,10 +68,19 @@ function createDocumentDeps(overrides: Partial<DocumentHandlerDeps> = {}): {
     getModelCapabilities: getCapabilitiesMock,
     getStoredModel: getStoredModelMock,
     processPrompt: processPromptMock,
+    saveFile: saveFileMock,
+    getCurrentProject: getCurrentProjectMock,
     ...overrides,
   };
 
-  return { deps, processPromptMock, downloadMock, getCapabilitiesMock, getStoredModelMock };
+  return {
+    deps,
+    processPromptMock,
+    downloadMock,
+    getCapabilitiesMock,
+    getStoredModelMock,
+    saveFileMock,
+  };
 }
 
 describe("bot/handlers/document", () => {
@@ -111,7 +124,7 @@ describe("bot/handlers/document", () => {
           file_unique_id: "unique-id",
           file_name: "large.txt",
           mime_type: "text/plain",
-          file_size: 200 * 1024, // 200KB
+          file_size: 200 * 1024,
         },
       });
       const { deps, processPromptMock, downloadMock } = createDocumentDeps();
@@ -179,7 +192,7 @@ describe("bot/handlers/document", () => {
   });
 
   describe("PDF files", () => {
-    it("downloads and sends PDF when model supports it", async () => {
+    it("downloads PDF and saves locally, includes file part when model supports PDF", async () => {
       const { ctx, replyMock } = createDocumentContext({
         document: {
           file_id: "pdf-file-id",
@@ -189,15 +202,16 @@ describe("bot/handlers/document", () => {
           file_size: 5000,
         },
       });
-      const { deps, processPromptMock, downloadMock } = createDocumentDeps();
+      const { deps, processPromptMock, downloadMock, saveFileMock } = createDocumentDeps();
 
       await handleDocumentMessage(ctx, deps);
 
       expect(replyMock).toHaveBeenCalledWith(t("bot.file_downloading"));
       expect(downloadMock).toHaveBeenCalled();
+      expect(saveFileMock).toHaveBeenCalled();
       expect(processPromptMock).toHaveBeenCalledWith(
         ctx,
-        "",
+        expect.stringContaining("User uploaded file:"),
         deps,
         expect.arrayContaining([
           expect.objectContaining({ type: "file", mime: "application/pdf" }),
@@ -205,7 +219,7 @@ describe("bot/handlers/document", () => {
       );
     });
 
-    it("shows error when model does not support PDF", async () => {
+    it("downloads PDF and saves locally without file part when model lacks PDF support", async () => {
       const { ctx, replyMock } = createDocumentContext({
         document: {
           file_id: "pdf-file-id",
@@ -215,7 +229,7 @@ describe("bot/handlers/document", () => {
           file_size: 5000,
         },
       });
-      const { deps, processPromptMock } = createDocumentDeps({
+      const { deps, processPromptMock, downloadMock, saveFileMock } = createDocumentDeps({
         getModelCapabilities: vi.fn().mockResolvedValue({
           input: { pdf: false },
         }),
@@ -223,12 +237,19 @@ describe("bot/handlers/document", () => {
 
       await handleDocumentMessage(ctx, deps);
 
-      expect(replyMock).toHaveBeenCalledWith(t("bot.model_no_pdf"));
-      expect(processPromptMock).not.toHaveBeenCalled();
+      expect(replyMock).toHaveBeenCalledWith(t("bot.file_downloading"));
+      expect(downloadMock).toHaveBeenCalled();
+      expect(saveFileMock).toHaveBeenCalled();
+      expect(processPromptMock).toHaveBeenCalledWith(
+        ctx,
+        expect.stringContaining("User uploaded file:"),
+        deps,
+        [],
+      );
     });
 
-    it("sends caption-only when model does not support PDF but caption exists", async () => {
-      const { ctx, replyMock } = createDocumentContext({
+    it("includes caption in prompt for PDF", async () => {
+      const { ctx } = createDocumentContext({
         document: {
           file_id: "pdf-file-id",
           file_unique_id: "pdf-unique-id",
@@ -246,12 +267,17 @@ describe("bot/handlers/document", () => {
 
       await handleDocumentMessage(ctx, deps);
 
-      expect(processPromptMock).toHaveBeenCalledWith(ctx, "Summarize this document", deps);
+      expect(processPromptMock).toHaveBeenCalledWith(
+        ctx,
+        expect.stringContaining("Summarize this document"),
+        deps,
+        [],
+      );
     });
   });
 
-  describe("unsupported file types", () => {
-    it("ignores unsupported MIME types silently", async () => {
+  describe("binary files (previously unsupported)", () => {
+    it("downloads and saves ZIP file locally, sends path in prompt", async () => {
       const { ctx, replyMock } = createDocumentContext({
         document: {
           file_id: "zip-file-id",
@@ -261,17 +287,46 @@ describe("bot/handlers/document", () => {
           file_size: 5000,
         },
       });
-      const { deps, processPromptMock, downloadMock } = createDocumentDeps();
+      const { deps, processPromptMock, downloadMock, saveFileMock } = createDocumentDeps();
 
       await handleDocumentMessage(ctx, deps);
 
-      expect(replyMock).not.toHaveBeenCalled();
-      expect(downloadMock).not.toHaveBeenCalled();
-      expect(processPromptMock).not.toHaveBeenCalled();
+      expect(replyMock).toHaveBeenCalledWith(t("bot.file_downloading"));
+      expect(downloadMock).toHaveBeenCalled();
+      expect(saveFileMock).toHaveBeenCalled();
+      expect(processPromptMock).toHaveBeenCalledWith(
+        ctx,
+        expect.stringContaining("User uploaded file:"),
+        deps,
+        [],
+      );
     });
 
-    it("ignores image files", async () => {
-      const { ctx, replyMock } = createDocumentContext({
+    it("downloads and saves DOCX file locally", async () => {
+      const { ctx } = createDocumentContext({
+        document: {
+          file_id: "docx-file-id",
+          file_unique_id: "docx-unique-id",
+          file_name: "report.docx",
+          mime_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          file_size: 10000,
+        },
+      });
+      const { deps, processPromptMock, saveFileMock } = createDocumentDeps();
+
+      await handleDocumentMessage(ctx, deps);
+
+      expect(saveFileMock).toHaveBeenCalled();
+      expect(processPromptMock).toHaveBeenCalledWith(
+        ctx,
+        expect.stringContaining("User uploaded file:"),
+        deps,
+        [],
+      );
+    });
+
+    it("downloads and saves image sent as document", async () => {
+      const { ctx } = createDocumentContext({
         document: {
           file_id: "image-file-id",
           file_unique_id: "image-unique-id",
@@ -280,11 +335,35 @@ describe("bot/handlers/document", () => {
           file_size: 5000,
         },
       });
-      const { deps, processPromptMock } = createDocumentDeps();
+      const { deps, processPromptMock, saveFileMock } = createDocumentDeps();
 
       await handleDocumentMessage(ctx, deps);
 
-      expect(replyMock).not.toHaveBeenCalled();
+      expect(saveFileMock).toHaveBeenCalled();
+      expect(processPromptMock).toHaveBeenCalledWith(
+        ctx,
+        expect.stringContaining("User uploaded file:"),
+        deps,
+        [],
+      );
+    });
+
+    it("rejects binary file exceeding upload size limit", async () => {
+      const { ctx, replyMock } = createDocumentContext({
+        document: {
+          file_id: "big-file-id",
+          file_unique_id: "big-unique-id",
+          file_name: "huge.bin",
+          mime_type: "application/octet-stream",
+          file_size: 25 * 1024 * 1024,
+        },
+      });
+      const { deps, processPromptMock, downloadMock } = createDocumentDeps();
+
+      await handleDocumentMessage(ctx, deps);
+
+      expect(replyMock).toHaveBeenCalledWith(t("bot.file_upload_too_large", { maxSizeMb: "20" }));
+      expect(downloadMock).not.toHaveBeenCalled();
       expect(processPromptMock).not.toHaveBeenCalled();
     });
   });
@@ -299,6 +378,21 @@ describe("bot/handlers/document", () => {
       await handleDocumentMessage(ctx, deps);
 
       expect(replyMock).toHaveBeenCalledWith(t("bot.file_download_error"));
+    });
+  });
+
+  describe("project not selected", () => {
+    it("replies with project_not_selected and skips download when no project", async () => {
+      const { ctx, replyMock } = createDocumentContext();
+      const { deps, processPromptMock, downloadMock } = createDocumentDeps({
+        getCurrentProject: vi.fn().mockReturnValue(undefined),
+      });
+
+      await handleDocumentMessage(ctx, deps);
+
+      expect(replyMock).toHaveBeenCalledWith(t("bot.project_not_selected"));
+      expect(downloadMock).not.toHaveBeenCalled();
+      expect(processPromptMock).not.toHaveBeenCalled();
     });
   });
 

@@ -9,6 +9,7 @@ export const de: I18nDictionary = {
   "cmd.description.task": "Geplante Aufgabe erstellen",
   "cmd.description.tasklist": "Geplante Aufgaben anzeigen",
   "cmd.description.commands": "Benutzerdefinierte Befehle",
+  "cmd.description.models": "Verfügbare Modelle auflisten",
   "cmd.description.opencode_start": "OpenCode-Server starten",
   "cmd.description.opencode_stop": "OpenCode-Server stoppen",
   "cmd.description.help": "Hilfe",
@@ -48,6 +49,7 @@ export const de: I18nDictionary = {
 
   "common.unknown": "unbekannt",
   "common.unknown_error": "unbekannter Fehler",
+  "common.back": "⬅️ Zurück",
 
   "start.welcome":
     "👋 Willkommen beim OpenCode Telegram Bot!\n\nNutze Befehle:\n/projects — Projekt auswählen\n/sessions — Sitzungsliste\n/new — neue Sitzung\n/task — geplante Aufgabe\n/tasklist — geplante Aufgaben\n/status — Status\n/help — Hilfe\n\nNutze die unteren Buttons, um Modus, Modell und Variante zu wählen.",
@@ -85,6 +87,8 @@ export const de: I18nDictionary = {
   "bot.file_download_error": "🔴 Datei konnte nicht heruntergeladen werden",
   "bot.model_no_pdf": "⚠️ Das aktuelle Modell unterstützt keine PDF-Eingabe. Sende nur Text.",
   "bot.text_file_too_large": "⚠️ Textdatei ist zu groß (max. {maxSizeKb}KB)",
+  "bot.file_upload_too_large": "⚠️ Datei ist zu groß (max. {maxSizeMb}MB)",
+  "bot.sticker_not_supported": "⚠️ Animierte und Video-Sticker werden nicht unterstützt.",
 
   "status.header_running": "🟢 OpenCode-Server läuft",
   "status.health.healthy": "OK",
@@ -445,6 +449,9 @@ export const de: I18nDictionary = {
   "legacy.models.header": "📋 Verfügbare Modelle:\n\n",
   "legacy.models.no_provider_models": "  ⚠️ Keine verfügbaren Modelle\n",
   "legacy.models.env_hint": "💡 Um ein Modell in .env zu nutzen:\n",
+  "legacy.models.provider_select": "Anbieter auswählen:",
+  "legacy.models.model_select": "Modell auswählen:",
+  "legacy.models.provider_not_found": "Anbieter nicht gefunden",
   "legacy.models.error": "🔴 Beim Laden der Modellliste ist ein Fehler aufgetreten.",
 
   "stt.recognizing": "🎤 Erkenne Audio...",
