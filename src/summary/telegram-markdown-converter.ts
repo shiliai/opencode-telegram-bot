@@ -358,6 +358,17 @@ function handleBlockquote(unsupportedTagsStrategy: UnsupportedTagsStrategy) {
 
 function handleHtml(unsupportedTagsStrategy: UnsupportedTagsStrategy) {
   return (node: HTML): string => {
+    if (unsupportedTagsStrategy === "keep") {
+      return node.value
+        .replace(/>/g, (match, offset, str: string) => {
+          const before = str.slice(0, offset);
+          if (/<[^<]*$/.test(before)) {
+            return match;
+          }
+          return "\\>";
+        })
+        .replace(/<(?![/a-zA-Z])/g, "\\<");
+    }
     return processUnsupportedTags(node.value, unsupportedTagsStrategy);
   };
 }

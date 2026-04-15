@@ -47,9 +47,11 @@ export async function handleModelsCallback(ctx: Context): Promise<boolean> {
     return false;
   }
 
-  const [, , data] = callbackQuery.data.split(":");
+  const parts = callbackQuery.data.split(":");
+  const kind = parts[1]; // "provider" or "model"
+  const data = parts[2];
 
-  if (!data) {
+  if (!kind || !data) {
     return false;
   }
 
@@ -63,6 +65,18 @@ export async function handleModelsCallback(ctx: Context): Promise<boolean> {
 
     if (data === "back") {
       await showProvidersMenu(ctx, providersData.providers);
+      await ctx.answerCallbackQuery();
+      return true;
+    }
+
+    if (kind === "model") {
+      const modelId = parts[3];
+      if (!modelId) {
+        await ctx.answerCallbackQuery({ text: t("legacy.models.error") });
+        return true;
+      }
+      // Model selection: data = providerId, modelId = parts[3]
+      await ctx.answerCallbackQuery({ text: `Selected ${data}/${modelId}` });
       return true;
     }
 

@@ -19,7 +19,7 @@ export async function saveFileLocally(buffer: Buffer, filename: string): Promise
 }
 
 export function isUploadSizeAllowed(fileSize: number | undefined): boolean {
-  if (!fileSize) {
+  if (fileSize == null) {
     return true; // Unknown size — allow, will be checked on download
   }
 

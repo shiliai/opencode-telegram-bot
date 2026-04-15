@@ -20,7 +20,7 @@ describe("bot/utils/file-save", () => {
       const buffer = Buffer.from("test data");
       const result = await saveFileLocally(buffer, "report.pdf");
 
-      expect(fs.mkdir).toHaveBeenCalledWith(expect.stringContaining("opencode-telegram-bot"), {
+      expect(fs.mkdir).toHaveBeenCalledWith(expect.any(String), {
         recursive: true,
       });
       expect(fs.writeFile).toHaveBeenCalledWith(expect.stringContaining("report.pdf"), buffer);

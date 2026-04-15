@@ -101,6 +101,19 @@ export async function handleDocumentMessage(
 
     await ctx.reply(t("bot.file_downloading"));
     const downloadedFile = await downloadFile(ctx.api, doc.file_id);
+
+    if (!isUploadSizeAllowed(downloadedFile.buffer.length)) {
+      logger.warn(
+        `[Document] Downloaded file exceeds size limit: ${filename} (${downloadedFile.buffer.length} bytes > ${config.files.uploadMaxSizeMb}MB)`,
+      );
+      await ctx.reply(
+        t("bot.file_upload_too_large", {
+          maxSizeMb: String(config.files.uploadMaxSizeMb),
+        }),
+      );
+      return;
+    }
+
     const localPath = await saveFile(downloadedFile.buffer, filename);
 
     const fileParts: FilePartInput[] = [];
